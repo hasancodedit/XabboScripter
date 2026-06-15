@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 
 using Microsoft.Extensions.Options;
 
@@ -55,8 +58,10 @@ while (!Ct.IsCancellationRequested)
 @"This MCP server drives the xabbo scripter. A typical workflow:
 
 1. `get_server_info` — confirm the scripter is connected to the game (canExecute).
-2. `get_scripting_guide` — learn how scripts are written.
-3. `list_api` / `get_api` — discover the game functions you can call from a script.
+2. `get_knowledgebase` — read the full field guide once: the API by domain, packets/events,
+   data models, proven recipes, a debugging playbook and a cheat sheet.
+3. `get_scripting_guide` — the short syntax primer, if you only need the basics.
+4. `list_api` / `get_api` — discover or verify the exact game functions you can call.
 4. Inspect context: `get_room`, `get_self`, `list_scripts`, `list_tabs`.
 5. Author: `create_script_tab` opens a visible editor tab with your code so the user can watch it,
    or `run_code` runs code in the background to gather information.
@@ -65,6 +70,8 @@ while (!Ct.IsCancellationRequested)
 7. Persist: `save_script` writes a script to disk; `add_autostart` runs it automatically on connect.
 
 Call `list_mcp_tools` to see every tool and its parameters.";
+
+    private static string? _knowledgebase;
 
     private readonly ScripterApiCatalog _catalog;
     private readonly IOptions<ScriptEngineOptions> _options;
@@ -80,6 +87,27 @@ Call `list_mcp_tools` to see every tool and its parameters.";
 
     [McpTool("get_scripting_guide", "Get a guide explaining how to write xabbo scripter scripts (syntax, async, the cancellation token, metadata directives and examples).")]
     public string GetScriptingGuide() => Guide;
+
+    [McpTool("get_knowledgebase", "Get the full xabbo scripter knowledgebase: a dense field guide (the API by domain, packets/headers/interception, events, data models, proven recipes mined from real scripts, a debugging playbook and a cheat sheet) distilled from the entire source. Read this once to understand the whole system before writing scripts.")]
+    public string GetKnowledgebase()
+    {
+        if (_knowledgebase is not null)
+            return _knowledgebase;
+
+        Assembly assembly = typeof(ApiTools).Assembly;
+        string? name = assembly.GetManifestResourceNames()
+            .FirstOrDefault(n => n.EndsWith("Knowledgebase.md", StringComparison.OrdinalIgnoreCase));
+
+        if (name is null)
+            return "Knowledgebase resource not found.";
+
+        using Stream? stream = assembly.GetManifestResourceStream(name);
+        if (stream is null)
+            return "Knowledgebase resource not found.";
+
+        using StreamReader reader = new(stream);
+        return _knowledgebase = reader.ReadToEnd();
+    }
 
     [McpTool("list_api", "List every member of the scripting API (the globals available to scripts) as a compact index of signatures.")]
     public object ListApi()

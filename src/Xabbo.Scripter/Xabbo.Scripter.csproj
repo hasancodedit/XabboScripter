@@ -56,6 +56,7 @@
 
 	<ItemGroup Label="MCP server">
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+		<EmbeddedResource Include="Mcp\Knowledgebase.md" />
 	</ItemGroup>
 
 	<ItemGroup Label="Include files">
