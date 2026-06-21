@@ -184,6 +184,7 @@ public partial class App : Application
         // MCP bridge
         services.AddSingleton(McpConfig.Load());
         services.AddSingleton<ScripterApiCatalog>();
+        services.AddSingleton<LibraryCatalog>();
         services.AddSingleton<McpClientConfigurator>();
 
         foreach (Type mcpToolType in Assembly.GetExecutingAssembly().GetTypes().Where(

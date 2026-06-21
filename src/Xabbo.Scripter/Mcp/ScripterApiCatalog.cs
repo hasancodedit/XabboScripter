@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 
 using Xabbo.Scripter.Scripting;
@@ -48,7 +47,7 @@ public sealed class ScripterApiCatalog
             if (property.DeclaringType != type) continue;
 
             string accessors = property.CanWrite ? "{ get; set; }" : "{ get; }";
-            string signature = $"{FriendlyName(property.PropertyType)} {property.Name} {accessors}";
+            string signature = $"{ReflectionFormat.FriendlyName(property.PropertyType)} {property.Name} {accessors}";
 
             members.Add(new ScripterApiMember(property.Name, "property", signature, Lookup(summaries, "P:" + property.Name), false));
         }
@@ -57,44 +56,16 @@ public sealed class ScripterApiCatalog
         {
             if (method.DeclaringType != type || method.IsSpecialName) continue;
 
-            string parameters = string.Join(", ", method.GetParameters().Select(FormatParameter));
-            string signature = $"{FriendlyName(method.ReturnType)} {method.Name}({parameters})";
+            string parameters = string.Join(", ", method.GetParameters().Select(ReflectionFormat.Parameter));
+            string signature = $"{ReflectionFormat.FriendlyName(method.ReturnType)} {method.Name}({parameters})";
 
-            members.Add(new ScripterApiMember(method.Name, "method", signature, Lookup(summaries, "M:" + method.Name), IsAsync(method.ReturnType)));
+            members.Add(new ScripterApiMember(method.Name, "method", signature, Lookup(summaries, "M:" + method.Name), ReflectionFormat.IsAsync(method.ReturnType)));
         }
 
         return members
             .OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(m => m.Signature, StringComparer.Ordinal)
             .ToList();
-    }
-
-    private static string FormatParameter(ParameterInfo parameter)
-    {
-        string text = $"{FriendlyName(parameter.ParameterType)} {parameter.Name}";
-        return parameter.HasDefaultValue ? $"{text} = {FormatDefault(parameter.DefaultValue)}" : text;
-    }
-
-    private static string FormatDefault(object? value) => value switch
-    {
-        null => "null",
-        string s => $"\"{s}\"",
-        bool b => b ? "true" : "false",
-        _ => value.ToString() ?? "null"
-    };
-
-    private static bool IsAsync(Type returnType)
-    {
-        if (returnType == typeof(Task) || returnType == typeof(ValueTask))
-            return true;
-
-        if (returnType.IsGenericType)
-        {
-            Type definition = returnType.GetGenericTypeDefinition();
-            return definition == typeof(Task<>) || definition == typeof(ValueTask<>);
-        }
-
-        return false;
     }
 
     private static string? Lookup(IReadOnlyDictionary<string, string> summaries, string name) =>
@@ -162,38 +133,5 @@ public sealed class ScripterApiCatalog
 
         int dot = body.LastIndexOf('.');
         return dot >= 0 ? body[(dot + 1)..] : body;
-    }
-
-    private static string FriendlyName(Type type)
-    {
-        Type? nullable = Nullable.GetUnderlyingType(type);
-        if (nullable is not null)
-            return FriendlyName(nullable) + "?";
-
-        if (type.IsArray)
-            return FriendlyName(type.GetElementType()!) + "[]";
-
-        if (type.IsGenericType)
-        {
-            string name = type.Name;
-            int backtick = name.IndexOf('`');
-            if (backtick >= 0) name = name[..backtick];
-
-            string arguments = string.Join(", ", type.GetGenericArguments().Select(FriendlyName));
-            return $"{name}<{arguments}>";
-        }
-
-        if (type == typeof(void)) return "void";
-        if (type == typeof(string)) return "string";
-        if (type == typeof(bool)) return "bool";
-        if (type == typeof(int)) return "int";
-        if (type == typeof(long)) return "long";
-        if (type == typeof(short)) return "short";
-        if (type == typeof(byte)) return "byte";
-        if (type == typeof(double)) return "double";
-        if (type == typeof(float)) return "float";
-        if (type == typeof(object)) return "object";
-
-        return type.Name;
     }
 }
