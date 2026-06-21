@@ -76,17 +76,15 @@ public sealed class ScriptFileTools : IMcpToolProvider
         return _ui.Invoke(() =>
         {
             ScriptViewModel? viewModel = _scripts.FindScript(script);
-            string fileName = viewModel?.FileName ?? Normalize(script);
+            if (viewModel is null)
+                throw new McpToolException($"No script found matching '{script}'.");
 
-            if (viewModel is not null)
-            {
-                if (viewModel.IsRunning)
-                    throw new McpToolException("Cannot delete a script while it is running.");
+            if (viewModel.IsRunning)
+                throw new McpToolException("Cannot delete a script while it is running.");
 
-                _scripts.DeleteScript(viewModel);
-            }
+            _scripts.DeleteScript(viewModel);
 
-            string path = Path.Combine(_engine.ScriptDirectory, fileName);
+            string path = Path.Combine(_engine.ScriptDirectory, viewModel.FileName);
             bool fileDeleted = false;
             if (File.Exists(path))
             {
@@ -94,7 +92,7 @@ public sealed class ScriptFileTools : IMcpToolProvider
                 fileDeleted = true;
             }
 
-            return new { deleted = true, fileName, fileDeleted };
+            return new { deleted = true, fileName = viewModel.FileName, fileDeleted };
         });
     }
 

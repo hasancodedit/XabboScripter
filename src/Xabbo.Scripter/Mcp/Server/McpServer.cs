@@ -50,18 +50,10 @@ public sealed class McpServer : ObservableObject, IHostedService, IMcpActivitySi
     }
 
     private int _requestCount;
-    public int RequestCount
-    {
-        get => _requestCount;
-        private set => Set(ref _requestCount, value);
-    }
+    public int RequestCount => _requestCount;
 
     private int _sessionCount;
-    public int SessionCount
-    {
-        get => _sessionCount;
-        private set => Set(ref _sessionCount, value);
-    }
+    public int SessionCount => _sessionCount;
 
     public string Endpoint => _config.Endpoint;
 
@@ -169,9 +161,17 @@ public sealed class McpServer : ObservableObject, IHostedService, IMcpActivitySi
         await StartServerAsync().ConfigureAwait(false);
     }
 
-    void IMcpActivitySink.OnRequest(string? method) => RequestCount++;
+    void IMcpActivitySink.OnRequest(string? method)
+    {
+        Interlocked.Increment(ref _requestCount);
+        RaisePropertyChanged(nameof(RequestCount));
+    }
 
-    void IMcpActivitySink.OnSessionOpened(string sessionId) => SessionCount++;
+    void IMcpActivitySink.OnSessionOpened(string sessionId)
+    {
+        Interlocked.Increment(ref _sessionCount);
+        RaisePropertyChanged(nameof(SessionCount));
+    }
 
     private static int FindFreePort(int basePort)
     {

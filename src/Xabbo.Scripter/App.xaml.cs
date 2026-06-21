@@ -102,6 +102,13 @@ public partial class App : Application
     {
         base.OnExit(e);
 
+        IHost? host = _host;
+        if (host is not null)
+        {
+            try { host.StopAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult(); } catch { }
+            host.Dispose();
+        }
+
         _mutex?.Close();
         _mutex = null;
     }

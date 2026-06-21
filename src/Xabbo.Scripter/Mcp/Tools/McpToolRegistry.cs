@@ -74,9 +74,17 @@ public sealed class McpToolRegistry
             result = await Unwrap(result).ConfigureAwait(false);
             return Convert(result);
         }
+        catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException oce)
+        {
+            throw oce;
+        }
         catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
             return CallToolResult.Failure(Describe(ex.InnerException));
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

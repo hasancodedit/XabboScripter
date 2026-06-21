@@ -39,13 +39,16 @@ public sealed class McpHttpHandler
         HttpRequest request = context.Request;
         HttpResponse response = context.Response;
 
-        response.Headers["Access-Control-Allow-Origin"] = "*";
         response.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-MCP-Token, Mcp-Session-Id, MCP-Protocol-Version";
         response.Headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS";
 
+        bool originAllowed = IsOriginAllowed(request, out string? origin);
+        if (originAllowed && origin is not null)
+            response.Headers["Access-Control-Allow-Origin"] = origin;
+
         if (HttpMethods.IsOptions(request.Method))
         {
-            response.StatusCode = StatusCodes.Status204NoContent;
+            response.StatusCode = originAllowed ? StatusCodes.Status204NoContent : StatusCodes.Status403Forbidden;
             return;
         }
 
@@ -55,7 +58,7 @@ public sealed class McpHttpHandler
             return;
         }
 
-        if (!IsOriginAllowed(request))
+        if (!originAllowed)
         {
             response.StatusCode = StatusCodes.Status403Forbidden;
             return;
@@ -204,16 +207,24 @@ public sealed class McpHttpHandler
                value.Equals(EndpointPath + "/", StringComparison.Ordinal);
     }
 
-    private static bool IsOriginAllowed(HttpRequest request)
+    private static bool IsOriginAllowed(HttpRequest request, out string? origin)
     {
-        if (!request.Headers.TryGetValue("Origin", out var origin))
+        origin = null;
+
+        if (!request.Headers.TryGetValue("Origin", out var originHeader))
             return true;
 
-        string value = origin.ToString();
+        string value = originHeader.ToString();
         if (string.IsNullOrEmpty(value))
             return true;
 
-        return Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) && uri.IsLoopback;
+        if (Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) && uri.IsLoopback)
+        {
+            origin = value;
+            return true;
+        }
+
+        return false;
     }
 
     private static async Task WriteJsonAsync(HttpContext context, object payload)

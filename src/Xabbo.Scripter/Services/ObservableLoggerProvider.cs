@@ -12,15 +12,12 @@ namespace Xabbo.Scripter.Services;
 
 public class ObservableLoggerProvider : ObservableObject, ILoggerProvider
 {
+    private readonly object _lock = new();
     private StringBuilder _text = new();
     public string Text
     {
-        get => _text.ToString();
-        set
-        {
-            _text = new StringBuilder(value);
-            RaisePropertyChanged();
-        }
+        get { lock (_lock) return _text.ToString(); }
+        set { lock (_lock) _text = new StringBuilder(value); RaisePropertyChanged(); }
     }
 
     public ObservableLoggerProvider() { }
@@ -34,13 +31,13 @@ public class ObservableLoggerProvider : ObservableObject, ILoggerProvider
 
     public void Log(string? message)
     {
-        _text.Append(message);
+        lock (_lock) _text.Append(message);
         Update();
     }
 
     public void Clear()
     {
-        _text.Clear();
+        lock (_lock) _text.Clear();
         Update();
     }
 

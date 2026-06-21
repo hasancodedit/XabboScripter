@@ -5,7 +5,8 @@ namespace Xabbo.Scripter.Mcp;
 
 internal static class McpJson
 {
-    public static readonly JsonElement Null = JsonDocument.Parse("null").RootElement;
+    private static readonly JsonDocument NullDocument = JsonDocument.Parse("null");
+    public static readonly JsonElement Null = NullDocument.RootElement;
 
     public static readonly JsonSerializerOptions Wire = new()
     {

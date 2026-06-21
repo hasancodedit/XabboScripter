@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 
 using Xabbo.Scripter.Configuration;
+using Xabbo.Scripter.Mcp.Protocol;
 
 namespace Xabbo.Scripter.Mcp.Integration;
 
@@ -11,7 +12,7 @@ public sealed record McpInstallResult(bool Ok, string Message, string? Path = nu
 
 public sealed class McpClientConfigurator
 {
-    public const string ServerName = "xabbo-scripter";
+    public const string ServerName = McpConstants.ServerName;
     private const string CodexServerName = "xabbo_scripter";
 
     private readonly McpConfig _config;

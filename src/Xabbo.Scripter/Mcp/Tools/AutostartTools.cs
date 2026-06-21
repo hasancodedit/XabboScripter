@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -69,7 +70,8 @@ public sealed class AutostartTools : IMcpToolProvider
         return _ui.Invoke(() =>
         {
             ScriptViewModel? viewModel = _scripts.FindScript(script);
-            string fileName = viewModel?.FileName ?? script;
+            string fileName = viewModel?.FileName
+                ?? (script.EndsWith(".csx", StringComparison.OrdinalIgnoreCase) ? script : script + ".csx");
 
             _autostart.SetAutostart(fileName, false);
             return (object)new { removed = true, fileName };
