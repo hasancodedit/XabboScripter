@@ -63,6 +63,11 @@ public sealed class MetaTools : IMcpToolProvider
         };
     }
 
-    [McpTool("get_integration", "Get ready-to-use configuration snippets and CLI commands for connecting external LLM clients (Claude Code, Gemini CLI, Codex CLI) to this server.")]
-    public object GetIntegration() => _configurator.Snippets();
+    [McpTool("get_integration", "Get ready-to-use connection details for external AI clients (Claude Code, Gemini, Codex, Cursor, VS Code, and many more): the endpoint, auth token and a per-client copy/install snippet or command.")]
+    public object GetIntegration() => new
+    {
+        endpoint = _config.Endpoint,
+        authToken = _config.RequireAuthToken ? _config.AuthToken : null,
+        clients = _configurator.Targets()
+    };
 }

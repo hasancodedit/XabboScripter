@@ -92,50 +92,32 @@
                 <CheckBox Content="Allow editing visible editor tabs" IsChecked="{Binding AllowEditor}" />
 
                 <!-- Integration -->
-                <TextBlock Text="Connect a client" FontSize="14" FontWeight="SemiBold" Margin="0,16,0,6" />
+                <TextBlock Text="Connect a client" FontSize="14" FontWeight="SemiBold" Margin="0,16,0,2" />
+                <TextBlock Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,8"
+                           Text="Copy the command or config snippet and paste it into your client." />
 
-                <TextBlock Text="Claude Code" FontWeight="Medium" Margin="0,4,0,2" />
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" Text="{Binding ClaudeCommand, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" />
-                    <Button Grid.Column="1" Content="Copy" Margin="8,0,0,0" Padding="10,2" VerticalAlignment="Top"
-                            Command="{Binding CopyCommand}" CommandParameter="{Binding ClaudeCommand}" />
-                    <Button Grid.Column="2" Content="Install" Margin="8,0,0,0" Padding="10,2" VerticalAlignment="Top"
-                            Command="{Binding InstallClaudeCommand}" />
-                </Grid>
-
-                <TextBlock Text="Gemini CLI" FontWeight="Medium" Margin="0,12,0,2" />
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" Text="{Binding GeminiCommand, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" />
-                    <Button Grid.Column="1" Content="Copy" Margin="8,0,0,0" Padding="10,2" VerticalAlignment="Top"
-                            Command="{Binding CopyCommand}" CommandParameter="{Binding GeminiCommand}" />
-                    <Button Grid.Column="2" Content="Install" Margin="8,0,0,0" Padding="10,2" VerticalAlignment="Top"
-                            Command="{Binding InstallGeminiCommand}" />
-                </Grid>
-
-                <TextBlock Text="Codex CLI (~/.codex/config.toml)" FontWeight="Medium" Margin="0,12,0,2" />
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" Text="{Binding CodexToml, Mode=OneWay}" IsReadOnly="True"
-                             FontFamily="Consolas" TextWrapping="Wrap" />
-                    <Button Grid.Column="1" Content="Copy" Margin="8,0,0,0" Padding="10,2" VerticalAlignment="Top"
-                            Command="{Binding CopyCommand}" CommandParameter="{Binding CodexToml}" />
-                    <Button Grid.Column="2" Content="Install" Margin="8,0,0,0" Padding="10,2" VerticalAlignment="Top"
-                            Command="{Binding InstallCodexCommand}" />
-                </Grid>
+                <ItemsControl ItemsSource="{Binding Clients}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="10,8" CornerRadius="4" Margin="0,0,0,6"
+                                    Background="{DynamicResource ControlFillColorDefaultBrush}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                                        <TextBlock Text="{Binding Hint}" Opacity="0.6" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Copy" Padding="16,4" VerticalAlignment="Center"
+                                            Command="{Binding DataContext.CopyClientCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
                 <Rectangle Height="16" Fill="Transparent" />
             </StackPanel>

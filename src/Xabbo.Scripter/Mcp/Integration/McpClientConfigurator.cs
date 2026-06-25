@@ -1,6 +1,6 @@
-using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using Xabbo.Scripter.Configuration;
@@ -8,12 +8,13 @@ using Xabbo.Scripter.Mcp.Protocol;
 
 namespace Xabbo.Scripter.Mcp.Integration;
 
-public sealed record McpInstallResult(bool Ok, string Message, string? Path = null);
+public sealed record McpClientTarget(string Id, string Name, string Hint, string CopyText);
 
 public sealed class McpClientConfigurator
 {
     public const string ServerName = McpConstants.ServerName;
-    private const string CodexServerName = "xabbo_scripter";
+
+    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
 
     private readonly McpConfig _config;
 
@@ -22,137 +23,62 @@ public sealed class McpClientConfigurator
         _config = config;
     }
 
-    private string PlainUrl => _config.Endpoint;
-    private string? Token => _config.RequireAuthToken ? _config.AuthToken : null;
-    private string UrlWithToken => Token is null ? PlainUrl : $"{PlainUrl}?token={Token}";
+    private string Url => _config.Endpoint;
+    private string? Token => _config.RequireAuthToken && !string.IsNullOrEmpty(_config.AuthToken) ? _config.AuthToken : null;
+    private string Bearer => $"Bearer {Token}";
 
-    public object Snippets() => new
+    public IReadOnlyList<McpClientTarget> Targets() => new List<McpClientTarget>
     {
-        endpoint = PlainUrl,
-        authToken = Token,
-        claude = new { command = ClaudeCommand(), json = ClaudeJson() },
-        gemini = new { command = GeminiCommand(), json = GeminiJson() },
-        codex = new { toml = CodexToml() }
+        new("claude-code", "Claude Code", "CLI",
+            $"claude mcp add --transport http {ServerName} {Url} --scope user" + (Token is null ? "" : $" --header \"Authorization: {Bearer}\"")),
+
+        new("gemini", "Gemini CLI", "CLI",
+            $"gemini mcp add --scope user --transport http {(Token is null ? "" : $"--header \"Authorization: {Bearer}\" ")}{ServerName} {Url}"),
+
+        new("codex", "Codex", "CLI and IDE", CodexToml()),
+
+        new("cursor", "Cursor", "IDE", Snippet("mcpServers", Server("url"))),
+
+        new("windsurf", "Windsurf", "IDE", Snippet("mcpServers", Server("serverUrl"))),
+
+        new("antigravity", "Antigravity", "CLI and IDE", Snippet("mcpServers", Server("serverUrl"))),
+
+        new("vscode", "VS Code", "IDE",
+            $"code --add-mcp \"{Escape(VsCodeServer().ToJsonString())}\""),
+
+        new("opencode", "opencode", "CLI", Snippet("mcp", Server("url", "remote", ("enabled", true)))),
     };
 
-    public string ClaudeCommand() =>
-        $"claude mcp add --transport http {ServerName} \"{UrlWithToken}\"";
-
-    public string ClaudeJson()
+    private JsonObject Server(string urlField, string? type = null, params (string Key, JsonNode? Value)[] extra)
     {
-        JsonObject server = new() { ["type"] = "http", ["url"] = UrlWithToken };
-        return Wrap(server).ToJsonString(Indented);
+        JsonObject server = new();
+        if (type is not null) server["type"] = type;
+        server[urlField] = Url;
+        if (Token is not null) server["headers"] = new JsonObject { ["Authorization"] = Bearer };
+        foreach ((string key, JsonNode? value) in extra)
+            server[key] = value;
+        return server;
     }
 
-    public string GeminiCommand()
+    private JsonObject VsCodeServer()
     {
-        string header = Token is null ? "" : $" -H \"X-MCP-Token: {Token}\"";
-        return $"gemini mcp add --transport http --scope user --trust{header} {ServerName} {PlainUrl}";
+        JsonObject server = new() { ["name"] = ServerName, ["type"] = "http", ["url"] = Url };
+        if (Token is not null) server["headers"] = new JsonObject { ["Authorization"] = Bearer };
+        return server;
     }
 
-    public string GeminiJson()
-    {
-        JsonObject server = new() { ["url"] = PlainUrl, ["type"] = "http", ["trust"] = true };
-        if (Token is not null)
-            server["headers"] = new JsonObject { ["X-MCP-Token"] = Token };
-        return Wrap(server).ToJsonString(Indented);
-    }
-
-    public string CodexToml()
+    private string CodexToml()
     {
         StringBuilder builder = new();
-        builder.AppendLine($"[mcp_servers.{CodexServerName}]");
-        builder.AppendLine($"url = \"{PlainUrl}\"");
+        builder.AppendLine($"[mcp_servers.{ServerName}]");
+        builder.AppendLine($"url = \"{Url}\"");
         if (Token is not null)
-            builder.AppendLine($"http_headers = {{ \"X-MCP-Token\" = \"{Token}\" }}");
-        builder.AppendLine("startup_timeout_sec = 20");
-        builder.AppendLine("tool_timeout_sec = 120");
-        return builder.ToString();
+            builder.AppendLine($"http_headers = {{ Authorization = \"{Bearer}\" }}");
+        return builder.ToString().TrimEnd();
     }
 
-    public McpInstallResult InstallClaude()
-    {
-        string path = Path.Combine(UserProfile, ".claude.json");
-        return MergeJsonServer(path, new JsonObject { ["type"] = "http", ["url"] = UrlWithToken });
-    }
+    private string Snippet(string rootKey, JsonObject server) =>
+        new JsonObject { [rootKey] = new JsonObject { [ServerName] = server } }.ToJsonString(Indented);
 
-    public McpInstallResult InstallGemini()
-    {
-        string path = Path.Combine(UserProfile, ".gemini", "settings.json");
-
-        JsonObject server = new() { ["url"] = PlainUrl, ["type"] = "http", ["trust"] = true };
-        if (Token is not null)
-            server["headers"] = new JsonObject { ["X-MCP-Token"] = Token };
-
-        return MergeJsonServer(path, server);
-    }
-
-    public McpInstallResult InstallCodex()
-    {
-        string path = Path.Combine(UserProfile, ".codex", "config.toml");
-
-        try
-        {
-            EnsureDirectory(path);
-
-            string existing = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
-
-            if (existing.Contains($"[mcp_servers.{CodexServerName}]", StringComparison.Ordinal))
-                return new McpInstallResult(true, "Already configured in Codex.", path);
-
-            StringBuilder builder = new(existing);
-            if (existing.Length > 0 && !existing.EndsWith("\n"))
-                builder.AppendLine();
-            builder.AppendLine();
-            builder.Append(CodexToml());
-
-            File.WriteAllText(path, builder.ToString());
-            return new McpInstallResult(true, "Added to Codex config.", path);
-        }
-        catch (Exception ex)
-        {
-            return new McpInstallResult(false, ex.Message, path);
-        }
-    }
-
-    private McpInstallResult MergeJsonServer(string path, JsonObject server)
-    {
-        try
-        {
-            EnsureDirectory(path);
-
-            JsonObject root = File.Exists(path)
-                ? JsonNode.Parse(File.ReadAllText(path)) as JsonObject ?? new JsonObject()
-                : new JsonObject();
-
-            if (root["mcpServers"] is not JsonObject servers)
-            {
-                servers = new JsonObject();
-                root["mcpServers"] = servers;
-            }
-
-            servers[ServerName] = server;
-
-            File.WriteAllText(path, root.ToJsonString(Indented));
-            return new McpInstallResult(true, "Configuration written.", path);
-        }
-        catch (Exception ex)
-        {
-            return new McpInstallResult(false, ex.Message, path);
-        }
-    }
-
-    private static JsonObject Wrap(JsonObject server) =>
-        new() { ["mcpServers"] = new JsonObject { [ServerName] = server } };
-
-    private static void EnsureDirectory(string path)
-    {
-        string? directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-            Directory.CreateDirectory(directory);
-    }
-
-    private static string UserProfile => Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-    private static readonly System.Text.Json.JsonSerializerOptions Indented = new() { WriteIndented = true };
+    private static string Escape(string json) => json.Replace("\"", "\\\"");
 }

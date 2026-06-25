@@ -64,6 +64,12 @@ public sealed class McpHttpHandler
             return;
         }
 
+        if (!IsHostAllowed(request))
+        {
+            response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
         if (!IsAuthorized(request))
         {
             response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -205,6 +211,18 @@ public sealed class McpHttpHandler
         string value = path.Value ?? string.Empty;
         return value.Equals(EndpointPath, StringComparison.Ordinal) ||
                value.Equals(EndpointPath + "/", StringComparison.Ordinal);
+    }
+
+    private static bool IsHostAllowed(HttpRequest request)
+    {
+        string? host = request.Host.Host;
+        if (string.IsNullOrEmpty(host))
+            return false;
+
+        return host.Equals("127.0.0.1", StringComparison.Ordinal) ||
+               host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+               host.Equals("::1", StringComparison.Ordinal) ||
+               host.Equals("[::1]", StringComparison.Ordinal);
     }
 
     private static bool IsOriginAllowed(HttpRequest request, out string? origin)

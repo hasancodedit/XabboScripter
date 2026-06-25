@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
@@ -25,9 +26,7 @@ public class McpViewManager : ObservableObject
     public string Endpoint => _config.Endpoint;
     public string AuthToken => _config.AuthToken;
 
-    public string ClaudeCommand => _configurator.ClaudeCommand();
-    public string GeminiCommand => _configurator.GeminiCommand();
-    public string CodexToml => _configurator.CodexToml();
+    public IReadOnlyList<McpClientTarget> Clients => _configurator.Targets();
 
     public bool Enabled
     {
@@ -90,9 +89,7 @@ public class McpViewManager : ObservableObject
     public ICommand RestartCommand { get; }
     public ICommand RegenerateTokenCommand { get; }
     public ICommand CopyCommand { get; }
-    public ICommand InstallClaudeCommand { get; }
-    public ICommand InstallGeminiCommand { get; }
-    public ICommand InstallCodexCommand { get; }
+    public ICommand CopyClientCommand { get; }
 
     public McpViewManager(
         McpServer server,
@@ -125,9 +122,12 @@ public class McpViewManager : ObservableObject
             catch { _snackbar.Enqueue("Failed to copy to clipboard."); }
         });
 
-        InstallClaudeCommand = new RelayCommand(() => Install(_configurator.InstallClaude(), "Claude Code"));
-        InstallGeminiCommand = new RelayCommand(() => Install(_configurator.InstallGemini(), "Gemini CLI"));
-        InstallCodexCommand = new RelayCommand(() => Install(_configurator.InstallCodex(), "Codex CLI"));
+        CopyClientCommand = new RelayCommand<McpClientTarget>(target =>
+        {
+            if (target is null || string.IsNullOrEmpty(target.CopyText)) return;
+            try { Clipboard.SetText(target.CopyText); _snackbar.Enqueue($"{target.Name}: copied to clipboard."); }
+            catch { _snackbar.Enqueue("Failed to copy to clipboard."); }
+        });
     }
 
     private void OnServerPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -136,19 +136,10 @@ public class McpViewManager : ObservableObject
             RaiseConnectionInfo();
     }
 
-    private void Install(McpInstallResult result, string client)
-    {
-        _snackbar.Enqueue(result.Ok
-            ? $"{client}: {result.Message}"
-            : $"{client}: failed — {result.Message}");
-    }
-
     private void RaiseConnectionInfo()
     {
         RaisePropertyChanged(nameof(Endpoint));
         RaisePropertyChanged(nameof(AuthToken));
-        RaisePropertyChanged(nameof(ClaudeCommand));
-        RaisePropertyChanged(nameof(GeminiCommand));
-        RaisePropertyChanged(nameof(CodexToml));
+        RaisePropertyChanged(nameof(Clients));
     }
 }
