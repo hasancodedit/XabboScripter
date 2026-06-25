@@ -47,4 +47,44 @@ public partial class ScriptsPage : Page
             Manager.CloseScript(scriptViewModel);
         }
     }
+
+    private void DragablzItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement element ||
+            element.DataContext is not ScriptViewModel scriptViewModel)
+        {
+            return;
+        }
+
+        FrameworkElement? closeButton = FindCloseButton(element);
+        if (closeButton is null || !closeButton.IsVisible)
+            return;
+
+        Point position = e.GetPosition(closeButton);
+        if (position.X >= 0 && position.Y >= 0 &&
+            position.X <= closeButton.ActualWidth && position.Y <= closeButton.ActualHeight)
+        {
+            e.Handled = true;
+
+            Manager.CloseScript(scriptViewModel);
+        }
+    }
+
+    private static FrameworkElement? FindCloseButton(DependencyObject root)
+    {
+        int count = VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < count; i++)
+        {
+            DependencyObject child = VisualTreeHelper.GetChild(root, i);
+
+            if (child is FrameworkElement element && element.Tag is "close")
+                return element;
+
+            FrameworkElement? found = FindCloseButton(child);
+            if (found is not null)
+                return found;
+        }
+
+        return null;
+    }
 }

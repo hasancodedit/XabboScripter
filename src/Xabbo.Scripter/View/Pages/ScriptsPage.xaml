@@ -55,13 +55,14 @@
             <dragablz:TabablzControl.ItemContainerStyle>
                 <Style TargetType="{x:Type dragablz:DragablzItem}" BasedOn="{StaticResource {x:Type dragablz:DragablzItem}}">
                     <EventSetter Event="MouseDown" Handler="DragablzItem_MouseDown" />
+                    <EventSetter Event="PreviewMouseLeftButtonDown" Handler="DragablzItem_PreviewMouseLeftButtonDown" />
                 </Style>
             </dragablz:TabablzControl.ItemContainerStyle>
 
             <dragablz:TabablzControl.HeaderItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding Header}" />
+                        <TextBlock Text="{Binding Header}" VerticalAlignment="Center" />
                         <ui:ProgressRing
                             Margin="4,0,0,0"
                             Width="10" Height="10"
@@ -81,6 +82,16 @@
                                 </Style>
                             </ui:ProgressRing.Style>
                         </ui:ProgressRing>
+                        <ui:Button
+                            Margin="6,0,0,0"
+                            Padding="2"
+                            Icon="Dismiss20"
+                            BorderThickness="0"
+                            VerticalAlignment="Center"
+                            Tag="close"
+                            ToolTip="Close tab"
+                            Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType={x:Type dragablz:DragablzItem}}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        />
                     </StackPanel>
                 </DataTemplate>
             </dragablz:TabablzControl.HeaderItemTemplate>

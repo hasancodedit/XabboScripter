@@ -141,7 +141,7 @@ public sealed class McpServer : ObservableObject, IHostedService, IMcpActivitySi
             if (_webHost is null)
                 return;
 
-            try { await _webHost.StopAsync().ConfigureAwait(false); } catch { }
+            try { await _webHost.StopAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false); } catch { }
             _webHost.Dispose();
             _webHost = null;
 
