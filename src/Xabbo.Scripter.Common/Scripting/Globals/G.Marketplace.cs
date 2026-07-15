@@ -83,7 +83,10 @@ public partial class G
     public int MakeMarketplaceOffer(IInventoryItem item, int price, int timeout = DEFAULT_TIMEOUT)
     {
         ArgumentNullException.ThrowIfNull(item);
-        return new MakeMarketplaceOfferTask(Interceptor, item.Type, price, new[] { item.ItemId }).Execute(timeout, Ct);
+        // Note: item.Id, not item.ItemId - ItemId comes back negative for floor items
+        // (a sign convention used elsewhere for the shared room item-id space), which
+        // the marketplace composer rejects. Id is the raw positive item reference it expects.
+        return new MakeMarketplaceOfferTask(Interceptor, item.Type, price, new[] { item.Id }).Execute(timeout, Ct);
     }
 
     /// <summary>
