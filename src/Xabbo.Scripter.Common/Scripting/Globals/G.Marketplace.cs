@@ -23,13 +23,15 @@ public partial class G
     /// <param name="from">The minimum offer price in credits.</param>
     /// <param name="to">The maximum offer price in credits.</param>
     /// <param name="sort">The order in which to sort the results.</param>
+    /// <param name="combineLtds">Whether to combine LTD (limited edition) offers of the same item into a single entry.</param>
     /// <param name="timeout">The time in milliseconds to wait for a response from the server.</param>
     /// <returns>The list of matching marketplace offers.</returns>
     public IEnumerable<IMarketplaceOffer> SearchMarketplace(
         string? searchText = null, int? from = null, int? to = null,
         MarketplaceSortOrder sort = MarketplaceSortOrder.HighestPrice,
+        bool combineLtds = false,
         int timeout = DEFAULT_TIMEOUT)
-        => new SearchMarketplaceTask(Interceptor, searchText, from, to, sort).Execute(timeout, Ct);
+        => new SearchMarketplaceTask(Interceptor, searchText, from, to, sort, combineLtds).Execute(timeout, Ct);
 
     /// <summary>
     /// Gets the marketplace information for the specified item type and kind.

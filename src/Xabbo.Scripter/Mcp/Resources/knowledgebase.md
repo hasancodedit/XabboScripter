@@ -769,8 +769,8 @@ GiftFurni constants: BasicRed="present_gen", BasicGray="present_gen6", WrapMaroo
 
 GetUserMarketplaceOffers(int timeout=10000) -> IUserMarketplaceOffers
     own listings; has CreditsWaiting
-SearchMarketplace(string? searchText=null, int? from=null, int? to=null, MarketplaceSortOrder sort=HighestPrice, int timeout=10000) -> IEnumerable<IMarketplaceOffer>
-    from/to = credit price range
+SearchMarketplace(string? searchText=null, int? from=null, int? to=null, MarketplaceSortOrder sort=HighestPrice, bool combineLtds=false, int timeout=10000) -> IEnumerable<IMarketplaceOffer>
+    from/to = credit price range; combineLtds = merge LTD offers of the same item into one entry
 GetMarketplaceInfo(ItemType type, int kind, int timeout=10000) -> IMarketplaceItemInfo
 GetMarketplaceInfo(IItem, int timeout=10000) -> IMarketplaceItemInfo
 GetMarketplaceInfo(FurniInfo, int timeout=10000) -> IMarketplaceItemInfo
@@ -1875,7 +1875,7 @@ foreach (var node in GetCatalog().Where(x => x.Id > 0)) {
 
 Exemplars: CatalogScraper, placebc, PlaceBCWall (joins furnidata_json/0 for colors).
 
-Marketplace. SearchMarketplace("", 1, 10, MarketplaceSortOrder.LowestPrice, 15000) -> IMarketplaceOffer (.Id cast to int, .Price); buy with Send(Out.MarketplaceBuyOffer, (int)offer.Id). Sniper polls SearchMarketplace(info.Name).OfKind(id) and buys under threshold every ~400ms. Stats sweep: Send(Out.GetMarketplaceItemStats, spriteId, 1) then await ReceivePacket(In.MarketplaceItemStats, Ct), 200ms throttle. Auto-relist: on In.MarketplaceSaleSuccess re-send Out.PlaceItemInMarketplace.
+Marketplace. SearchMarketplace("", 1, 10, MarketplaceSortOrder.LowestPrice, timeout: 15000) -> IMarketplaceOffer (.Id cast to int, .Price); buy with Send(Out.MarketplaceBuyOffer, (int)offer.Id). Sniper polls SearchMarketplace(info.Name).OfKind(id) and buys under threshold every ~400ms. Stats sweep: Send(Out.GetMarketplaceItemStats, spriteId, 1) then await ReceivePacket(In.MarketplaceItemStats, Ct), 200ms throttle. Auto-relist: on In.MarketplaceSaleSuccess re-send Out.PlaceItemInMarketplace.
 
 Exemplars: ShopSniper, MarketScan, MarketSales Bot, GetOfferID.
 
