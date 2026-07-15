@@ -778,6 +778,8 @@ GetMarketplaceInfo(FurniInfo, int timeout=10000) -> IMarketplaceItemInfo
 
 MarketplaceSortOrder: HighestPrice=1, LowestPrice=2, MostTrades=3, LeastTrades=4, MostOffers=5, LeastOffers=6
 IMarketplaceOffer : IItem: Id, Status:MarketplaceOfferStatus(Open=1, Sold=2, NotSold=3), Data, Price, TimeRemaining(min), Average, Offers
+    IsUsable/IsUsed: "usable" items (e.g. lovelocks) that can be locked; when used, Data is an IStringArrayData
+    and UsedByName/UsedWithName/UsedByFigure/UsedWithFigure/UsedDate are a best-effort read of its elements 1-5.
 IMarketplaceItemInfo : IItem: Average(7-day), Offers(open), TradeInfo:IMarketplaceTradeInfo(DayOffset, AverageSalePrice, TradeVolume)
 
 ```csharp
