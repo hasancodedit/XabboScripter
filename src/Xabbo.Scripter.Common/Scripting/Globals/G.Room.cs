@@ -182,18 +182,36 @@ public partial class G
     public IReadOnlyList<(long Id, string Name)> GetRightsFor(long roomId, int timeout = DEFAULT_TIMEOUT)
         => new GetRightsListTask(Interceptor, roomId).Execute(timeout, Ct);
 
+    /// <summary>
+    /// Removes all rights from the current room.
+    /// </summary>
+    public void RemoveAllRights()
+    {
+        if (!IsInRoom)
+            throw new Exception("The user is not in a room.");
+        RemoveAllRights(RoomId);
+    }
+
+    /// <summary>
+    /// Removes all rights from the specified room. The user must be the owner of the room.
+    /// </summary>
+    public void RemoveAllRights(long roomId) => Interceptor.Send(Out.RemoveAllRights, (int)roomId);
+
+    /// <summary>
+    /// Toggles muting all users in the current room. There is a single composer for this on the
+    /// wire (confirmed live); calling it again is expected to unmute rather than there being a
+    /// separate unmute message.
+    /// </summary>
+    public void ToggleMuteRoom() => Interceptor.Send(Out.RoomMuteAll);
+
     /*
         TODO
-            RemoveAllRights(roomId)
-
             GetBannedUsers(roomId)
 
             Mood light control
 
             GetRoomWordFilter()
             SetRoomBackground(...)
-
-            MuteRoom(...)
 
             SearchRooms(text)
             SearchRoomsByTag(text)

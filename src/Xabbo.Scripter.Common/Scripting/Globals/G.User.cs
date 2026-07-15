@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using Xabbo.Interceptor;
 using Xabbo.Core;
@@ -121,6 +122,38 @@ public partial class G
     /// <param name="timeout">The time to wait for a response from the server.</param>
     public List<Badge> GetUserBadges(int timeout = DEFAULT_TIMEOUT)
         => new GetBadgesTask(Interceptor).Execute(timeout, Ct);
+
+    /// <summary>
+    /// Sets the badges displayed on the user's avatar (up to 5, in order).
+    /// Any of the 5 slots not filled by <paramref name="badgeCodes"/> are cleared.
+    /// </summary>
+    /// <param name="badgeCodes">The badge codes to display, in slot order (maximum 5; extras are ignored).</param>
+    public void SetSelectedBadges(IEnumerable<string> badgeCodes)
+    {
+        ArgumentNullException.ThrowIfNull(badgeCodes);
+        var codes = badgeCodes.Take(5).ToList();
+        Interceptor.Send(
+            Out.SetSelectedBadges,
+            1, codes.Count > 0 ? codes[0] : "",
+            2, codes.Count > 1 ? codes[1] : "",
+            3, codes.Count > 2 ? codes[2] : "",
+            4, codes.Count > 3 ? codes[3] : "",
+            5, codes.Count > 4 ? codes[4] : ""
+        );
+    }
+
+    /// <inheritdoc cref="SetSelectedBadges(IEnumerable{string})" />
+    public void SetSelectedBadges(params string[] badgeCodes) => SetSelectedBadges((IEnumerable<string>)badgeCodes);
+
+    /// <summary>
+    /// Clears all badges displayed on the user's avatar.
+    /// </summary>
+    public void ClearSelectedBadges() => SetSelectedBadges(Enumerable.Empty<string>());
+
+    /// <summary>
+    /// Advances the "new user experience" onboarding script/wizard to its next step.
+    /// </summary>
+    public void ProceedNewUserExperience() => Interceptor.Send(Out["NewUserExperienceScriptProceed"]);
 
     /// <summary>
     /// Gets the list of groups the user belongs to.

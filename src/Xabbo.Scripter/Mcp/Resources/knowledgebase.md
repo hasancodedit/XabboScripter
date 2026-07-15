@@ -775,6 +775,21 @@ GetMarketplaceInfo(ItemType type, int kind, int timeout=10000) -> IMarketplaceIt
 GetMarketplaceInfo(IItem, int timeout=10000) -> IMarketplaceItemInfo
 GetMarketplaceInfo(FurniInfo, int timeout=10000) -> IMarketplaceItemInfo
     price history
+GetMarketplaceConfiguration(int timeout=10000) -> IMarketplaceConfiguration
+    IsEnabled, Commission, TokenBatchPrice, TokenBatchSize, OfferMinPrice, OfferMaxPrice, ExpirationHours,
+    AveragePricePeriod, SellingFeePercentage, RevenueLimit, HalfTaxLimit
+GetMarketplaceCanMakeOffer(int timeout=10000) -> (int ResultCode, int TokenCount)
+MakeMarketplaceOffer(ItemType type, int price, IEnumerable<long> itemIds, int timeout=10000) -> int (result code)
+MakeMarketplaceOffer(IInventoryItem item, int price, int timeout=10000) -> int (result code)
+    list one or more same-kind items as a single offer; check item.IsSellable first
+BuyMarketplaceOffer(int offerId, int timeout=10000) -> IMarketplaceBuyOfferResult
+BuyMarketplaceOffer(IMarketplaceOffer offer, int timeout=10000) -> IMarketplaceBuyOfferResult
+    Result, OfferId, NewPrice (if it changed since search), RequestedOfferId
+CancelMarketplaceOffer(int offerId, int timeout=10000) -> IMarketplaceCancelOfferResult
+CancelMarketplaceOffer(IMarketplaceOffer offer, int timeout=10000) -> IMarketplaceCancelOfferResult
+CancelAllMarketplaceOffers(int timeout=10000) -> IMarketplaceCancelAllOffersResult
+RedeemMarketplaceOfferCredits() -> void
+    fire-and-forget; claims credits from sold offers into the wallet balance
 
 MarketplaceSortOrder: HighestPrice=1, LowestPrice=2, MostTrades=3, LeastTrades=4, MostOffers=5, LeastOffers=6
 IMarketplaceOffer : IItem: Id, Status:MarketplaceOfferStatus(Open=1, Sold=2, NotSold=3), Data, Price, TimeRemaining(min), Average, Offers
@@ -1877,7 +1892,7 @@ foreach (var node in GetCatalog().Where(x => x.Id > 0)) {
 
 Exemplars: CatalogScraper, placebc, PlaceBCWall (joins furnidata_json/0 for colors).
 
-Marketplace. SearchMarketplace("", 1, 10, MarketplaceSortOrder.LowestPrice, timeout: 15000) -> IMarketplaceOffer (.Id cast to int, .Price); buy with Send(Out.MarketplaceBuyOffer, (int)offer.Id). Sniper polls SearchMarketplace(info.Name).OfKind(id) and buys under threshold every ~400ms. Stats sweep: Send(Out.GetMarketplaceItemStats, spriteId, 1) then await ReceivePacket(In.MarketplaceItemStats, Ct), 200ms throttle. Auto-relist: on In.MarketplaceSaleSuccess re-send Out.PlaceItemInMarketplace.
+Marketplace. SearchMarketplace("", 1, 10, MarketplaceSortOrder.LowestPrice, timeout: 15000) -> IMarketplaceOffer (.Id cast to int, .Price); buy with BuyMarketplaceOffer(offer) -> IMarketplaceBuyOfferResult. Sniper polls SearchMarketplace(info.Name).OfKind(id) and buys under threshold every ~400ms. Stats: GetMarketplaceInfo(type, kind) -> IMarketplaceItemInfo (Average, Offers, TradeInfo); 200ms throttle if sweeping many kinds. Own offers: GetUserMarketplaceOffers() -> IUserMarketplaceOffers (has CreditsWaiting); MakeMarketplaceOffer(item, price) or MakeMarketplaceOffer(type, price, itemIds) to list (item.IsSellable first); CancelMarketplaceOffer(offerId) / CancelAllMarketplaceOffers(); RedeemMarketplaceOfferCredits() (fire-and-forget) to claim proceeds from sold offers into wallet balance. GetMarketplaceConfiguration() -> IMarketplaceConfiguration for current commission/price bounds/expiration hours. GetMarketplaceCanMakeOffer() -> (ResultCode, TokenCount) to check eligibility before listing.
 
 Exemplars: ShopSniper, MarketScan, MarketSales Bot, GetOfferID.
 

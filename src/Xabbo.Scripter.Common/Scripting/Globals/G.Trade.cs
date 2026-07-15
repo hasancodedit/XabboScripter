@@ -7,6 +7,7 @@ using Xabbo.Messages;
 using Xabbo.Interceptor;
 using Xabbo.Core;
 using Xabbo.Core.Events;
+using Xabbo.Core.Tasks;
 
 namespace Xabbo.Scripter.Scripting;
 
@@ -45,8 +46,6 @@ public partial class G
     /// </summary>
     public ITradeOffer? PartnerTradeOffer => _tradeManager.PartnerOffer;
 
-    // TODO EnsureTrade method that returns a result when the trade opens / fails to open
-
     /// <summary>
     /// Trades the specified user.
     /// </summary>
@@ -60,6 +59,20 @@ public partial class G
     /// Trades the user with the specified index.
     /// </summary>
     public void Trade(int userIndex) => Interceptor.Send(Out.TradeOpen, userIndex);
+
+    /// <summary>
+    /// Opens a trade with the specified user and waits for it to open, throwing if it fails to open
+    /// (e.g. the user is busy or too far away) or the timeout elapses.
+    /// </summary>
+    public TradeStartEventArgs EnsureTrade(IRoomUser user, int timeout = DEFAULT_TIMEOUT)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        return EnsureTrade(user.Index, timeout);
+    }
+
+    /// <inheritdoc cref="EnsureTrade(IRoomUser, int)" />
+    public TradeStartEventArgs EnsureTrade(int userIndex, int timeout = DEFAULT_TIMEOUT)
+        => new EnsureTradeTask(Interceptor, _tradeManager, userIndex).Execute(timeout, Ct);
 
     /// <summary>
     /// Offers the specified inventory item in the trade.

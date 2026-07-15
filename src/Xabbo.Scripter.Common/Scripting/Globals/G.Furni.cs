@@ -246,4 +246,32 @@ public partial class G
     /// </summary>
     public void UpdateStackTile(long stackTileId, float height)
         => Interceptor.Send(Out.StackingHelperSetCaretHeight, stackTileId, (int)Math.Round(height * 100.0));
+
+    /// <summary>
+    /// Rolls the specified dice.
+    /// </summary>
+    public void RollDice(IFloorItem dice)
+    {
+        ArgumentNullException.ThrowIfNull(dice);
+        RollDice(dice.Id);
+    }
+
+    /// <summary>
+    /// Rolls the dice with the specified ID.
+    /// </summary>
+    public void RollDice(long itemId) => Interceptor.Send(Out.ThrowDice, itemId);
+
+    /// <summary>
+    /// Turns the specified dice off.
+    /// </summary>
+    public void TurnDiceOff(IFloorItem dice)
+    {
+        ArgumentNullException.ThrowIfNull(dice);
+        TurnDiceOff(dice.Id);
+    }
+
+    /// <summary>
+    /// Turns the dice with the specified ID off.
+    /// </summary>
+    public void TurnDiceOff(long itemId) => Interceptor.Send(Out.DiceOff, itemId);
 }
